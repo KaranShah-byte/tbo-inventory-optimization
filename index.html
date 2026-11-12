@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TBO Inventory Optimization</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            background-color: #f4f7f6; 
+            color: #333;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 40px auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        }
+        h1 { color: #0a2540; margin-top: 0; }
+        
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        input { 
+            padding: 10px; 
+            font-size: 16px; 
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 150px;
+        }
+        button { 
+            background-color: #0066ff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #0052cc; }
+
+        .summary { 
+            display: none; 
+            gap: 20px; 
+            margin-bottom: 30px; 
+        }
+        .card { 
+            background: #e3f2fd; 
+            padding: 20px; 
+            border-radius: 8px; 
+            flex: 1; 
+            text-align: center; 
+            border: 1px solid #bbdefb;
+        }
+        .card h3 { margin: 0 0 10px 0; color: #1565c0; font-size: 14px; text-transform: uppercase;}
+        .card p { margin: 0; font-size: 24px; font-weight: bold; color: #0d47a1;}
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            display: none; 
+        }
+        th, td { 
+            padding: 15px; 
+            border-bottom: 1px solid #eee; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #0a2540; 
+            color: white; 
+            font-weight: 500;
+        }
+        tr:hover { background-color: #f8f9fa; }
+        
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-hotel { background: #e8f5e9; color: #2e7d32; }
+        .badge-flight { background: #fff3e0; color: #ef6c00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TBO.com Optimization Engine</h1>
+        
+        <div class="controls">
+            <label style="font-weight: bold;">Maximum Budget ($): </label>
+            <input type="number" id="budgetInput" value="100000" step="5000">
+            <button onclick="runOptimization()">Generate Procurement Plan</button>
+        </div>
+
+        <div class="summary" id="summary">
+            <div class="card">
+                <h3>Total Budget Allocated</h3>
+                <p id="totalSpent">$-</p>
+            </div>
+            <div class="card">
+                <h3>Risk-Adjusted Expected Profit</h3>
+                <p id="expectedProfit">$-</p>
+            </div>
+            <div class="card">
+                <h3>Overall Portfolio ROI</h3>
+                <p id="roi">-%</p>
+            </div>
+        </div>
+
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Destination</th>
+                    <th>Inventory ID</th>
+                    <th>Units to Buy</th>
+                    <th>Unit Cost</th>
+                    <th>Total Investment</th>
+                    <th>Projected Profit</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function runOptimization() {
+            const budget = document.getElementById('budgetInput').value;
+            const btn = document.querySelector('button');
+            btn.innerText = "Analyzing...";
+            btn.disabled = true;
+
+            try {
+                // Fetch data from your Python FastAPI backend
+                const response = await fetch(`http://127.0.0.1:8000/api/optimize?budget=${budget}`);
+                const data = await response.json();
+                
+                document.getElementById('summary').style.display = 'flex';
+                document.getElementById('resultsTable').style.display = 'table';
+                
+                // Format currency
+                const formatMoney = (amount) => '$' + amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                
+                document.getElementById('totalSpent').innerText = formatMoney(data.total_spent);
+                document.getElementById('expectedProfit').innerText = formatMoney(data.expected_profit);
+                document.getElementById('roi').innerText = data.portfolio_roi_percentage + '%';
+                
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+                
+                data.purchases.forEach(p => {
+                    const badgeClass = p.type === 'Hotel' ? 'badge-hotel' : 'badge-flight';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><span class="badge ${badgeClass}">${p.type}</span></td>
+                            <td style="font-weight: bold;">${p.destination}</td>
+                            <td>${p.inventory_id}</td>
+                            <td>${p.units_to_buy}</td>
+                            <td>${formatMoney(p.unit_cost)}</td>
+                            <td>${formatMoney(p.total_investment)}</td>
+                            <td style="color: #2e7d32; font-weight: bold;">${formatMoney(p.expected_profit)}</td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                alert("Error fetching data. Make sure your Python FastAPI server is running in the terminal!");
+                console.error(error);
+            } finally {
+                btn.innerText = "Generate Procurement Plan";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
