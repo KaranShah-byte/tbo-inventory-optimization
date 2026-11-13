@@ -143,7 +143,7 @@
 
             try {
                 // Fetch data from your Python FastAPI backend
-                const response = await fetch(`http://127.0.0.1:8000/api/optimize?budget=${budget}`);
+                const response = await fetch(`/api/optimize?budget=${budget}`);
                 const data = await response.json();
                 
                 document.getElementById('summary').style.display = 'flex';

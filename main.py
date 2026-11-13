@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from optimization_engine import optimize_inventory
 import pandas as pd
 
@@ -16,7 +17,8 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"message": "TBO Optimization Engine is running."}
+    # This tells FastAPI to serve your dashboard instead of a JSON message
+    return FileResponse("index.html")
 
 @app.get("/api/optimize")
 def get_optimization(budget: float = 100000):
